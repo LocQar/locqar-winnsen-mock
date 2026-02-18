@@ -1,0 +1,408 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "LocQar – Winnsen Locker Callbacks",
+    "description": "Stub endpoints called by the Winnsen remote server to report locker events (dropoffs, pickups, returns, recalls) to the LocQar backend.",
+    "version": "2.0.0",
+    "contact": {
+      "name": "LocQar"
+    }
+  },
+  "servers": [
+    {
+      "url": "/api/v2/winnsen/callback",
+      "description": "Vercel deployment (relative)"
+    }
+  ],
+  "components": {
+    "parameters": {
+      "APIKey": {
+        "name": "APIKey",
+        "in": "query",
+        "required": true,
+        "description": "Shared secret key used to authenticate Winnsen requests.",
+        "schema": { "type": "string" }
+      },
+      "waybillno": {
+        "name": "waybillno",
+        "in": "query",
+        "required": true,
+        "description": "Unique waybill / tracking number for the parcel.",
+        "schema": { "type": "string" }
+      },
+      "terminalsn": {
+        "name": "terminalsn",
+        "in": "query",
+        "required": true,
+        "description": "Serial number of the locker terminal.",
+        "schema": { "type": "string" }
+      },
+      "doorno": {
+        "name": "doorno",
+        "in": "query",
+        "required": true,
+        "description": "Door / compartment number used.",
+        "schema": { "type": "string" }
+      },
+      "dropofftime": {
+        "name": "dropofftime",
+        "in": "query",
+        "required": true,
+        "description": "Unix epoch seconds at which the drop-off occurred.",
+        "schema": { "type": "string" }
+      },
+      "pickuptime": {
+        "name": "pickuptime",
+        "in": "query",
+        "required": true,
+        "description": "Unix epoch seconds at which the pickup occurred.",
+        "schema": { "type": "string" }
+      },
+      "dropoffuser": {
+        "name": "dropoffuser",
+        "in": "query",
+        "required": false,
+        "description": "Identifier of the user who dropped off the parcel.",
+        "schema": { "type": "string" }
+      },
+      "pickupuser": {
+        "name": "pickupuser",
+        "in": "query",
+        "required": false,
+        "description": "Identifier of the user who picked up the parcel.",
+        "schema": { "type": "string" }
+      }
+    },
+    "schemas": {
+      "WinnsenResponse": {
+        "type": "object",
+        "properties": {
+          "Status": {
+            "type": "string",
+            "example": "Success",
+            "enum": ["Success", "Fail", "FAILED"]
+          },
+          "Data": {
+            "type": "array",
+            "items": { "type": "object" },
+            "example": []
+          },
+          "Message": {
+            "type": "string",
+            "example": ""
+          }
+        }
+      },
+      "WinnsenError": {
+        "type": "object",
+        "properties": {
+          "Status": { "type": "string", "example": "FAILED" },
+          "Data": { "type": "array", "items": {}, "example": [] },
+          "Message": { "type": "string", "example": "Unauthorized" }
+        }
+      }
+    },
+    "responses": {
+      "Success": {
+        "description": "Request accepted.",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/WinnsenResponse" },
+            "example": { "Status": "Success", "Data": [], "Message": "" }
+          }
+        }
+      },
+      "Unauthorized": {
+        "description": "Invalid or missing APIKey.",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/WinnsenError" }
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/courierDropoff": {
+      "get": {
+        "summary": "Courier Dropoff",
+        "description": "Called by Winnsen after a courier drops off a parcel at the locker.",
+        "operationId": "courierDropoff",
+        "tags": ["Courier"],
+        "parameters": [
+          { "$ref": "#/components/parameters/waybillno" },
+          { "$ref": "#/components/parameters/terminalsn" },
+          { "$ref": "#/components/parameters/doorno" },
+          { "$ref": "#/components/parameters/dropofftime" },
+          {
+            "name": "pickupcode",
+            "in": "query",
+            "required": true,
+            "description": "Code the recipient will use to collect the parcel.",
+            "schema": { "type": "string" }
+          },
+          { "$ref": "#/components/parameters/dropoffuser" },
+          { "$ref": "#/components/parameters/APIKey" }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/Success" },
+          "403": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/recipientPickup": {
+      "get": {
+        "summary": "Recipient Pickup",
+        "description": "Called by Winnsen after the recipient picks up their parcel from the locker.",
+        "operationId": "recipientPickup",
+        "tags": ["Recipient"],
+        "parameters": [
+          { "$ref": "#/components/parameters/waybillno" },
+          { "$ref": "#/components/parameters/terminalsn" },
+          { "$ref": "#/components/parameters/doorno" },
+          { "$ref": "#/components/parameters/pickuptime" },
+          { "$ref": "#/components/parameters/pickupuser" },
+          {
+            "name": "income",
+            "in": "query",
+            "required": false,
+            "description": "Payment amount collected at pickup (cash-on-delivery).",
+            "schema": { "type": "string" }
+          },
+          { "$ref": "#/components/parameters/APIKey" }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/Success" },
+          "403": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/courierRecall": {
+      "get": {
+        "summary": "Courier Recall",
+        "description": "Called by Winnsen when a courier reclaims an uncollected parcel from the locker after it has been held overtime.",
+        "operationId": "courierRecall",
+        "tags": ["Courier"],
+        "parameters": [
+          { "$ref": "#/components/parameters/waybillno" },
+          { "$ref": "#/components/parameters/terminalsn" },
+          { "$ref": "#/components/parameters/doorno" },
+          { "$ref": "#/components/parameters/pickuptime" },
+          { "$ref": "#/components/parameters/pickupuser" },
+          { "$ref": "#/components/parameters/APIKey" }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/Success" },
+          "403": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/senderDropoff": {
+      "get": {
+        "summary": "Sender Dropoff",
+        "description": "Called by Winnsen after a sender deposits a parcel at the locker for courier collection.",
+        "operationId": "senderDropoff",
+        "tags": ["Sender"],
+        "parameters": [
+          { "$ref": "#/components/parameters/waybillno" },
+          { "$ref": "#/components/parameters/terminalsn" },
+          { "$ref": "#/components/parameters/doorno" },
+          { "$ref": "#/components/parameters/dropofftime" },
+          { "$ref": "#/components/parameters/dropoffuser" },
+          { "$ref": "#/components/parameters/APIKey" }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/Success" },
+          "403": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/courierPickup": {
+      "get": {
+        "summary": "Courier Pickup",
+        "description": "Called by Winnsen after a courier collects a sender-deposited parcel from the locker.",
+        "operationId": "courierPickup",
+        "tags": ["Courier"],
+        "parameters": [
+          { "$ref": "#/components/parameters/waybillno" },
+          { "$ref": "#/components/parameters/terminalsn" },
+          { "$ref": "#/components/parameters/doorno" },
+          { "$ref": "#/components/parameters/pickuptime" },
+          { "$ref": "#/components/parameters/pickupuser" },
+          { "$ref": "#/components/parameters/APIKey" }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/Success" },
+          "403": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/recipientReturn": {
+      "get": {
+        "summary": "Recipient Return",
+        "description": "Called by Winnsen after a recipient returns a parcel to the locker.",
+        "operationId": "recipientReturn",
+        "tags": ["Recipient"],
+        "parameters": [
+          { "$ref": "#/components/parameters/waybillno" },
+          { "$ref": "#/components/parameters/terminalsn" },
+          { "$ref": "#/components/parameters/doorno" },
+          { "$ref": "#/components/parameters/dropofftime" },
+          { "$ref": "#/components/parameters/dropoffuser" },
+          { "$ref": "#/components/parameters/APIKey" }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/Success" },
+          "403": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/courierPickReturnedParcel": {
+      "get": {
+        "summary": "Courier Picks Up Returned Parcel",
+        "description": "Called by Winnsen after a courier collects a recipient-returned parcel from the locker.",
+        "operationId": "courierPickReturnedParcel",
+        "tags": ["Courier"],
+        "parameters": [
+          { "$ref": "#/components/parameters/waybillno" },
+          { "$ref": "#/components/parameters/terminalsn" },
+          { "$ref": "#/components/parameters/doorno" },
+          { "$ref": "#/components/parameters/pickuptime" },
+          { "$ref": "#/components/parameters/pickupuser" },
+          { "$ref": "#/components/parameters/APIKey" }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/Success" },
+          "403": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/senderName": {
+      "get": {
+        "summary": "Get Sender / Recipient Name",
+        "description": "Called by Winnsen to retrieve a display name for the parcel's sender or recipient (shown on the locker screen).",
+        "operationId": "senderName",
+        "tags": ["Lookup"],
+        "parameters": [
+          { "$ref": "#/components/parameters/waybillno" },
+          { "$ref": "#/components/parameters/APIKey" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Name returned successfully.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/WinnsenResponse" },
+                "example": {
+                  "Status": "Success",
+                  "Data": [{ "recipientName": "LocQar Customer" }],
+                  "Message": ""
+                }
+              }
+            }
+          },
+          "403": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/checkCourier": {
+      "get": {
+        "summary": "Verify Courier",
+        "description": "Called by Winnsen to authenticate a courier before they can operate on the locker.",
+        "operationId": "checkCourier",
+        "tags": ["Lookup"],
+        "parameters": [
+          {
+            "name": "type",
+            "in": "query",
+            "required": true,
+            "description": "Authentication type (e.g. account/password or card).",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "account",
+            "in": "query",
+            "required": true,
+            "description": "Courier account identifier.",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "password",
+            "in": "query",
+            "required": true,
+            "description": "Courier password.",
+            "schema": { "type": "string", "format": "password" }
+          },
+          {
+            "name": "card",
+            "in": "query",
+            "required": false,
+            "description": "Card number (used when type is card-based auth).",
+            "schema": { "type": "string" }
+          },
+          { "$ref": "#/components/parameters/APIKey" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Courier verified.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/WinnsenResponse" },
+                "example": {
+                  "Status": "Success",
+                  "Data": [{ "Name": "LocQar Courier" }],
+                  "Message": ""
+                }
+              }
+            }
+          },
+          "403": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/checkParcel": {
+      "get": {
+        "summary": "Verify Parcel",
+        "description": "Called by Winnsen to validate a waybill before locker operations. Returns the recipient phone number. Does not require an APIKey.",
+        "operationId": "checkParcel",
+        "tags": ["Lookup"],
+        "parameters": [
+          { "$ref": "#/components/parameters/waybillno" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Parcel is valid and ready.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/WinnsenResponse" },
+                "example": {
+                  "Status": "Success",
+                  "Data": [{ "Phone": "0200000000" }],
+                  "Message": ""
+                }
+              }
+            }
+          },
+          "200 (not ready)": {
+            "description": "Parcel found but not in a collectible state.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "Status": "Fail",
+                  "Data": [],
+                  "Message": null
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "tags": [
+    { "name": "Courier", "description": "Events triggered by courier actions at the locker." },
+    { "name": "Recipient", "description": "Events triggered by recipient actions at the locker." },
+    { "name": "Sender", "description": "Events triggered by sender actions at the locker." },
+    { "name": "Lookup", "description": "Query endpoints called by Winnsen to verify parcels, couriers, and names." }
+  ]
+}

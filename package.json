@@ -1,0 +1,9 @@
+{
+  "name": "locqar-winnsen-mock",
+  "version": "1.0.0",
+  "description": "Stub/mock server for Winnsen locker callback integration testing",
+  "private": true,
+  "engines": {
+    "node": "18.x"
+  }
+}
