@@ -1,6 +1,6 @@
 // GET /api/v1/winnsen/callback/courierRecall
 // Called by Winnsen when a courier recalls an uncollected parcel from the locker.
-const { successResponse, checkKey } = require("../../_utils");
+const { successResponse, checkKey } = require("../../../_utils");
 
 module.exports = (req, res) => {
   if (!checkKey(req, res)) return;

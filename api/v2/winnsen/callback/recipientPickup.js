@@ -1,6 +1,6 @@
 // GET /api/v1/winnsen/callback/recipientPickup
 // Called by Winnsen after the recipient picks up a parcel from the locker.
-const { successResponse, checkKey } = require("../../_utils");
+const { successResponse, checkKey } = require("../../../_utils");
 
 module.exports = (req, res) => {
   if (!checkKey(req, res)) return;
