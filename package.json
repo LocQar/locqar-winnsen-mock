@@ -4,6 +4,6 @@
   "description": "Stub/mock server for Winnsen locker callback integration testing",
   "private": true,
   "engines": {
-    "node": "18.x"
+    "node": "24.x"
   }
 }
